@@ -8,13 +8,13 @@ const server = http.createServer(app);
 
 // Enable CORS for all origins (or restrict to specific origin)
 app.use(cors({
-    origin: "http://localhost:3001", // Allow requests from your React app
+    origin: "https://ghosttchat.netlify.app/", // Allow requests from your React app
     methods: ["GET", "POST"], // Allow specific HTTP methods
 }));
 
 const io = new Server(server, {
     cors: {
-        origin: "http://localhost:3001", // Match your frontend origin
+        origin: "https://ghosttchat.netlify.app/", // Match your frontend origin
         methods: ["GET", "POST"], // Allow specific HTTP methods
     },
 });
