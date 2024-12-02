@@ -8,14 +8,14 @@ const server = http.createServer(app);
 
 app.use(
   cors({
-    origin: 'https://hiddchat.vercel.app', // Allow requests from React frontend
+    origin: 'https://anonsphere.vercel.app', // Allow requests from React frontend
     methods: ['GET', 'POST'],
   })
 );
 
 const io = new Server(server, {
   cors: {
-    origin: 'https://hiddchat.vercel.app',
+    origin: 'https://anonsphere.vercel.app',
     methods: ['GET', 'POST'],
   },
 });
