@@ -8,14 +8,14 @@ const server = http.createServer(app);
 
 app.use(
   cors({
-    origin: 'http://localhost:3001', // Allow requests from React frontend
+    origin: 'https://ghost-chat-omega.vercel.app/', // Allow requests from React frontend
     methods: ['GET', 'POST'],
   })
 );
 
 const io = new Server(server, {
   cors: {
-    origin: 'http://localhost:3001',
+    origin: 'https://ghost-chat-omega.vercel.app/',
     methods: ['GET', 'POST'],
   },
 });
