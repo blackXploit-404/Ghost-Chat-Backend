@@ -1,80 +1,90 @@
 const express = require('express');
 const http = require('http');
-const cors = require('cors'); // Import CORS middleware
+const cors = require('cors');
 const { Server } = require('socket.io');
 
 const app = express();
 const server = http.createServer(app);
 
-// Enable CORS for all origins (or restrict to specific origin)
-app.use(cors({
-    origin: "https://ghosttchat.netlify.app", // Allow requests from your React app
-    methods: ["GET", "POST"], // Allow specific HTTP methods
-}));
+app.use(
+  cors({
+    origin: 'http://localhost:3001', // Allow requests from React frontend
+    methods: ['GET', 'POST'],
+  })
+);
 
 const io = new Server(server, {
-    cors: {
-        origin: "https://ghosttchat.netlify.app", // Match your frontend origin
-        methods: ["GET", "POST"], // Allow specific HTTP methods
-    },
+  cors: {
+    origin: 'http://localhost:3001',
+    methods: ['GET', 'POST'],
+  },
 });
 
 let waitingUsers = [];
-let totalOnlineUsers = 0; // Track the total number of online users
+let totalOnlineUsers = 0;
 
 io.on('connection', (socket) => {
-    totalOnlineUsers++; // Increment the total online users count
-    console.log(`[INFO] User connected: ${socket.id}`);
-    io.emit('totalUsers', totalOnlineUsers); // Emit the total users to all clients
+  totalOnlineUsers++;
+  console.log(`[INFO] User connected: ${socket.id}`);
+  io.emit('totalUsers', totalOnlineUsers);
 
-    let partnerSocket = null;
+  let partnerSocket = null;
 
-    socket.on('findPartner', () => {
-        if (waitingUsers.length > 0) {
-            partnerSocket = waitingUsers.pop();
-            partnerSocket.partnerSocket = socket;
-            socket.partnerSocket = partnerSocket;
+  socket.on('findPartner', () => {
+    if (waitingUsers.length > 0) {
+      partnerSocket = waitingUsers.pop();
+      partnerSocket.partnerSocket = socket;
+      socket.partnerSocket = partnerSocket;
 
-            partnerSocket.emit('partnerFound');
-            socket.emit('partnerFound');
-        } else {
-            waitingUsers.push(socket);
-        }
-    });
+      partnerSocket.emit('partnerFound');
+      socket.emit('partnerFound');
+    } else {
+      waitingUsers.push(socket);
+    }
+  });
 
-    socket.on('sendMessage', (message) => {
-        if (socket.partnerSocket) {
-            socket.partnerSocket.emit('receiveMessage', message);
-        }
-    });
+  socket.on('endChat', () => {
+    if (socket.partnerSocket) {
+      socket.partnerSocket.emit('partnerDisconnected');
+      socket.partnerSocket.partnerSocket = null;
+      socket.partnerSocket = null;
+    }
+    waitingUsers = waitingUsers.filter((user) => user !== socket);
+    console.log(`[INFO] User ended chat: ${socket.id}`);
+  });
 
-    // Typing event to trigger typing effect
-    socket.on('typing', () => {
-        if (socket.partnerSocket) {
-            socket.partnerSocket.emit('partnerTyping');
-        }
-    });
+  socket.on('sendMessage', (message) => {
+    if (socket.partnerSocket) {
+      socket.partnerSocket.emit('receiveMessage', message);
+    }
+  });
 
-    socket.on('stopTyping', () => {
-        if (socket.partnerSocket) {
-            socket.partnerSocket.emit('partnerStopTyping');
-        }
-    });
+  socket.on('typing', () => {
+    if (socket.partnerSocket) {
+      socket.partnerSocket.emit('partnerTyping');
+    }
+  });
 
-    socket.on('disconnect', () => {
-        totalOnlineUsers--; // Decrement the total online users count
-        io.emit('totalUsers', totalOnlineUsers); // Emit the updated total users to all clients
+  socket.on('stopTyping', () => {
+    if (socket.partnerSocket) {
+      socket.partnerSocket.emit('partnerStopTyping');
+    }
+  });
 
-        waitingUsers = waitingUsers.filter((user) => user !== socket);
-        if (socket.partnerSocket) {
-            socket.partnerSocket.emit('partnerDisconnected');
-            socket.partnerSocket.partnerSocket = null;
-        }
-        console.log(`[INFO] User disconnected: ${socket.id}`);
-    });
+  socket.on('disconnect', () => {
+    totalOnlineUsers--;
+    io.emit('totalUsers', totalOnlineUsers);
+
+    waitingUsers = waitingUsers.filter((user) => user !== socket);
+    if (socket.partnerSocket) {
+      socket.partnerSocket.emit('partnerDisconnected');
+      socket.partnerSocket.partnerSocket = null;
+    }
+    console.log(`[INFO] User disconnected: ${socket.id}`);
+  });
 });
 
 const PORT = 3000;
 server.listen(PORT, () => {
-    console.log(`[INFO] Server running on http://localhost:${PORT}`);
+  console.log(`[INFO] Server running on http://localhost:${PORT}`);
 });
